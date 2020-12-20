@@ -32,7 +32,7 @@ const Statistics = (props) => {
     )
   }
   const average = (good *1 + bad* -1)/total
-  const positive = 100 * (good )/total
+  const positive = 100 *(good )/total
 
   return (
     <table>
