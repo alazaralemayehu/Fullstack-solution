@@ -8,44 +8,65 @@ const Button = ({onClick, text}) => {
   )
 }
 
+const Statistic = (props) => {
+  const {text, value } = props
+  let metrics = ""
+  if ( text === "positive") {
+     metrics =  "%"
+  }
+  return(
+    <tr>
+      <td>{text} </td>
+      <td>{ value} {metrics}</td> 
+    </tr>
+  )
+}
+
+const Statistics = (props) => {
+  const {good, bad, neutral} = props
+  const total = good + bad + neutral
+  console.log(total)
+  if (total === 0) {
+    return (
+      <p>No Feedback given</p>
+    )
+  }
+  const average = (good *1 + bad* -1)/total
+  const positive = 100 * (good )/total
+
+  return (
+    <table>
+        <tbody>
+          <Statistic text="good" value={good}/>
+          <Statistic text="neutral" value={neutral}/>
+          <Statistic text="bad" value={bad}/>
+          <Statistic text="total" value={total}/>
+
+          <Statistic text="average" value={average.toFixed(1)}/>
+          <Statistic text="positive" value={positive.toFixed(1)}/>
+        </tbody>
+      </table>
+  )
+}
+
 const App = () => {
   // save clicks of each button to its own state
   const [good, setGood] = useState(0)
   const [neutral, setNeutral] = useState(0)
   const [bad, setBad] = useState(0)
-  const [average, setAverage] = useState(0)
-  const [positiveFeedback, setPositiveFeedback] = useState(0)
-  const [all , setAll] = useState(0)
 
-  const handleGoodClick= () => {
+  const  handleGoodClick= async () => {
     setGood(good + 1)
-    calculateTotal()
   }
 
-  const handleBadClick= () => {
+  const handleBadClick= async () => {
     setBad(bad + 1)
-    calculateTotal()
     
   }
-
-  const handleNeutralClick= () => {
+  const handleNeutralClick= async () => {
     setNeutral(neutral + 1)
-    calculateTotal()
-    calculateAverage()
-    calculatePositiveFeedback()
   }
 
-  const calculateTotal = () => {
-    setAll(all + 1)
-  }
-  const calculateAverage = () => {
-    const average = (good * 1  + bad * (-1) + neutral * 0) / all
-    setAverage(average)
-  }
-  const calculatePositiveFeedback = () => {
-    const positiveFeedback = 100 * good / all
-    setPositiveFeedback(positiveFeedback)
-  }
   return (
     <>
       <h1>Give Feedback</h1>
@@ -56,12 +77,7 @@ const App = () => {
       </div>
 
       <h1>Statistics</h1>
-      <p>good {good}</p>
-      <p>neutral {neutral}</p>
-      <p>bad {bad}</p> 
-      <p>All {all}</p>
-      <p>Average {average}%</p>
-      <p>Positive {positiveFeedback} %</p>
+      <Statistics good={good} neutral={neutral} bad={bad} />
     </>
   )
 }
