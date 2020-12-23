@@ -1,26 +1,21 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import personService from './services/Person'
+import Persons from './components/Person'
+
+const Notification = ({message, className}) => {
+  return(
+    <p className={className}>{message}</p>
+  ) 
+}
 const Filter = ({value, onChange}) => {
   return (<p> Filter shown with <input value={value} onChange={onChange}/></p>)
 }
-const Person = ({person}) => {
-  return (
-    <li key={person.name}>{person.name} {person.phoneNumber}</li>
-  )
-}
-const Persons = ({persons}) => {
-  return (
-  <ul>
-  {persons.map( person => 
-     <Person person = {person}/>
-     )}
-</ul>)
-}
 
-const PersonForm = ({onSubmit, newName, newPhoneNumber, onPhoneNumberChange, onNameChange} ) => {
+const PersonForm = ({onSubmit, newName, newNumber, onNumberChange, onNameChange} ) => {
  return ( <form onSubmit={onSubmit}>
     <div>
       name: <input value={newName} onChange={onNameChange}/>
-      phone number: <input value={newPhoneNumber} onChange={onPhoneNumberChange}/>
+      number: <input value={newNumber} onChange={onNumberChange}/>
     </div>
     <div>
       <button type="submit">add</button>
@@ -28,60 +23,120 @@ const PersonForm = ({onSubmit, newName, newPhoneNumber, onPhoneNumberChange, onN
 </form>)
 }
 const App = () => {
+  const [persons, setPersons] = useState([])
 
-  const [persons, setPersons] = useState([
-    { name: 'Arto Hellas', phoneNumber: '040-123456' },
-    { name: 'Ada Lovelace', phoneNumber: '39-44-5323523' },
-    { name: 'Dan Abramov', phoneNumber: '12-43-234345' },
-    { name: 'Mary Poppendieck', phoneNumber: '39-23-6423122' }
-  ])
   const [ newName, setNewName ] = useState('')
-  const [ newPhoneNumber, setNewPhoneNumber ] = useState('')
+  const [ newNumber, setNewNumber ] = useState('')
   const [ filterNameOption, setFilterNameOption] = useState('')
+  const [ notificationMessage, setNotificationMessage] = useState('')
+  const [ notifcationClass, setNotificationClass] = useState('')
+
+  useEffect(() => {
+    personService
+      .getAll()
+      .then( initialPersons => {
+        setPersons(initialPersons)
+      })
+    },[])
+    
+
   const handleNameChange = (event) => {
     setNewName(event.target.value)
   }
 
-  const handlPhoneNumberChange = (event)  => {
-    setNewPhoneNumber(event.target.value)
+  const handlNumberChange = (event)  => {
+    setNewNumber(event.target.value)
   }
 
   const handleNameFilterOptionChange = (event) => {
     setFilterNameOption(event.target.value)
-    console.log("Filtered search ", event.target.value)
   }
+
+  const deletePerson = (id) => {
+
+    personService
+      .deletePerson(id)
+      .then(response => {
+        setPersons(persons.filter(person => person.id !== id))
+        console.log(persons)
+      })
+  }
+  const addPerson = (event) => {
+    event.preventDefault()
+    const personToUpdate = persons.filter(person => person.name === newName)
+    // if the person exist, go to updatation 
+    // updated the phone number
+    if (personToUpdate.length) {
+      const result = window.confirm(`${newName} already exists, do you want to updated the number?`)
+      if (result) {
+        const changedPerson = {...personToUpdate[0], number: newNumber}
+        personService
+          .update(changedPerson.id, changedPerson)
+          .catch(error => {
+            const notificationMessage = `information of ${changedPerson.name} has been deleted from the server`
+            //set notification class to error and message to the crafted message
+            // class error is found in index.css 
+            setNotificationClass('error')
+            setNotificationMessage(notificationMessage)
+            
+            // reset message and class of the notification after 5 seconds.
+            setTimeout(() => {
+              setNotificationClass(null)
+              setNotificationMessage(null)
+            }, 5000)
+          })
+      }
+
+      setNewName('')
+      setNewNumber('')
+      return 
+    }
+    const person = {
+      name: newName,
+      number: newNumber,
+    }
+    
+    personService
+      .create(person)
+      .then(returnedPerson => {
+
+        setPersons(persons.concat(returnedPerson))
+
+        const notificationMessage = `added ${returnedPerson.name}`
+        //set notification class to success and message to the crafted message
+        // class success is found in index.css 
+        setNotificationClass('success')
+        setNotificationMessage(notificationMessage)
+       
+        setTimeout(() => {
+        // reset message and class of the notification after 5 seconds.
+
+          setNotificationClass(null)
+          setNotificationMessage(null)
+        }, 5000)
+
+        setNewName('')
+        setNewNumber('')
+      })
+  }
+
 
   // filter the persons to show 
   // if the filterSearch exists use that, if not use original persons object
   const personsToShow = filterNameOption?persons.filter(person => person.name.toLowerCase().includes(filterNameOption.toLowerCase())):persons
 
-  const handleSubmit = (event) => {
-    event.preventDefault()
-    const exists = persons.filter(person => person.name === newName).length 
-
-    if (exists) {
-      alert(`${newName} is already added to phonebook`)
-      return 
-    }
-    const person = {
-      name: newName,
-      phoneNumber: newPhoneNumber,
-    }
-    setPersons(persons.concat(person))
-    setNewName("")
-    setNewPhoneNumber("")
-  }
-  
-
   return (
     <div>
+      <Notification message ={notificationMessage} className={notifcationClass}/>
       <h2>Phonebook</h2>
       <Filter value = {filterNameOption} onChange= {handleNameFilterOptionChange}/>
       <h3>Add New</h3>
-      <PersonForm onSubmit={handleSubmit} newName={newName} newPhoneNumber={newPhoneNumber} onPhoneNumberChange ={handlPhoneNumberChange} onNameChange={handleNameChange} />
+      <PersonForm onSubmit={addPerson} newName={newName} newNumber={newNumber} onNumberChange ={handlNumberChange} onNameChange={handleNameChange} />
    
       <h2>Numbers</h2>
-      <Persons persons = {personsToShow} />
+      <Persons 
+        persons = {personsToShow}
+        onDelete = {deletePerson} />
     </div>
   )
 }
